@@ -6,8 +6,8 @@ import sys
     
 class gramPrintListener(gramListener):
 
-    def __init__(self, initMDP: dict):
-        self.initMDP = initMDP
+    def __init__(self):
+        pass
         
     def enterDefstates(self, ctx):
         print("States: %s" % str([str(x) for x in ctx.ID()]))
@@ -31,6 +31,7 @@ class gramPrintListener(gramListener):
 
 
 def main():
+    list_states = []
     # lexer = gramLexer(StdinStream())
     lexer = gramLexer(FileStream("ex.mdp"))
     stream = CommonTokenStream(lexer)
