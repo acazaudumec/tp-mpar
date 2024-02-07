@@ -3,12 +3,11 @@ from gramLexer import gramLexer
 from gramListener import gramListener
 from gramParser import gramParser
 import sys
-
-        
+    
 class gramPrintListener(gramListener):
 
-    def __init__(self):
-        pass
+    def __init__(self, initMDP: dict):
+        self.initMDP = initMDP
         
     def enterDefstates(self, ctx):
         print("States: %s" % str([str(x) for x in ctx.ID()]))
@@ -29,10 +28,11 @@ class gramPrintListener(gramListener):
         weights = [int(str(x)) for x in ctx.INT()]
         print("Transition from " + dep + " with no action and targets " + str(ids) + " with weights " + str(weights))
 
-            
+
 
 def main():
-    lexer = gramLexer(StdinStream())
+    # lexer = gramLexer(StdinStream())
+    lexer = gramLexer(FileStream("ex.mdp"))
     stream = CommonTokenStream(lexer)
     parser = gramParser(stream)
     tree = parser.program()
