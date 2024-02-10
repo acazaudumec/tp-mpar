@@ -31,7 +31,7 @@ class gramPrintListener(gramListener):
 
 
 def main():
-    list_states = []
+    
     # lexer = gramLexer(StdinStream())
     lexer = gramLexer(FileStream("ex.mdp"))
     stream = CommonTokenStream(lexer)
