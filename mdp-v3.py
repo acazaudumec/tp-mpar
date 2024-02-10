@@ -8,7 +8,7 @@ import numpy as np
 class MDP:
 
     def __init__(self, states: list, encoding):
-        self.S = len(states)
+        self.S = states
         self.T = encoding
 
     @classmethod
@@ -27,7 +27,7 @@ class MDP:
         
         # Create and populate the State objects
         states = []
-        list_states = initMDP.keys()
+        list_states = list(initMDP.keys())
         n_states = len(list_states)
 
         # For each state in initMDP
@@ -42,15 +42,16 @@ class MDP:
         pass
 
 class State:
-    def __init__(self, ID: int, transitions: list):
+    def __init__(self, ID: int, transitions: list, transact: bool):
         self.ID = ID
         self.transitions = transitions
+        self.transact = transact
 
     @classmethod
     def from_initState(cls, state: str, n_states: int, initState: dict, encoding: dict):
         state_ID = encoding[state]
         transitions = []
-        list_actions = initState.keys()
+        list_actions = list(initState.keys())
         n_actions = len(list_actions)
 
         # For each action in this state
@@ -64,7 +65,7 @@ class State:
                 encoding
             ))
 
-        return cls(state_ID, transitions)
+        return cls(state_ID, transitions, initState["transact"])
 
 class Transition:
     def __init__(self, ID: int, ID_from: int, ID_to: list, matrix):
@@ -78,7 +79,7 @@ class Transition:
         states_to = initTransition["states_to"]
         weights = initTransition["weights"]
         sum_weights = sum(weights)
-        new_action = np.zeros(n_states, n_states)
+        new_action = np.zeros((n_states, n_states))
         ID_to = []
 
         for state in states_to:
@@ -120,6 +121,7 @@ class gramPrintListener(gramListener):
             "states_to": ids,
             "weights": weights
         }
+        self.initMDP[dep]["transact"] = True
         
     def enterTransnoact(self, ctx):
         ids = [str(x) for x in ctx.ID()]
@@ -130,8 +132,10 @@ class gramPrintListener(gramListener):
         # Populate initMDP
         self.initMDP[dep]["tna"] = {
             "states_to": ids,
-            "weights": weights
+            "weights": weights,
+            "transact": False
         }
+        self.initMDP[dep]["transact"] = False
 
 
 
@@ -146,6 +150,12 @@ def main():
     printer = gramPrintListener(initMDP)
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
+
+    mdp = MDP.from_initMDP(initMDP)
+    print(mdp.T)
+    for state in mdp.S:
+        for transition in state.transitions:
+            print(transition.matrix)
 
 if __name__ == '__main__':
     main()
