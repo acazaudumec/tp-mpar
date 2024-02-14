@@ -4,6 +4,7 @@ from gramListener import gramListener
 from gramParser import gramParser
 import sys
 import numpy as np
+from random import random
 
 class MDP:
 
@@ -36,12 +37,12 @@ class MDP:
             states.append(State.from_initState(state, n_states, initMDP[state], encoding))
 
         return cls(states, encoding)
-            
 
     def run(self):
         pass
 
 class State:
+
     def __init__(self, ID: int, transitions: list, transact: bool):
         self.ID = ID
         self.transitions = transitions
@@ -57,13 +58,16 @@ class State:
         # For each action in this state
         for l in range(n_actions):
             action = list_actions[l]
-            transitions.append(Transition.from_initTransition(
-                encoding[state + "_" + action],
-                state_ID,
-                n_states,
-                initState[action],
-                encoding
-            ))
+            if action == "transact":
+                pass
+            else:
+                transitions.append(Transition.from_initTransition(
+                    encoding[state + "_" + action],
+                    state_ID,
+                    n_states,
+                    initState[action],
+                    encoding
+                ))
 
         return cls(state_ID, transitions, initState["transact"])
 
@@ -91,6 +95,17 @@ class Transition:
             new_action[ID_from][column] = probability
         
         return cls(ID, ID_from, ID_to, new_action)
+    
+    def get_next_state_ID(self, current_state_ID):
+        list_prob = self.matrix[current_state_ID]
+        s = 0
+        rand = random()
+        for i in range(len(list_prob)):
+            if list_prob[i] != 0:
+                s += list_prob[i]
+                if rand < s:
+                    next_state_ID = i
+        return next_state_ID
 
     
 class gramPrintListener(gramListener):
