@@ -5,6 +5,7 @@ from gramParser import gramParser
 import sys
 import numpy as np
 from random import random
+import sys
 
 class MDP:
 
@@ -35,11 +36,27 @@ class MDP:
         for k in range(n_states):
             state = list_states[k]
             states.append(State.from_initState(state, n_states, initMDP[state], encoding))
+            #print("")
+            #print(states[-1])
 
         return cls(states, encoding)
 
     def run(self):
-        pass
+        correct_answer = False
+        names_states_list = [str(elt.ID) for elt in self.S]
+        while not(correct_answer) :
+            print("The available states are :")
+            print(names_states_list)
+            first_state = input("Enter the name of the state you want to start with")
+            correct_answer = first_state in names_states_list
+            print("\n",correct_answer)
+        
+        for elt in self.S :
+            if str(elt.ID) == first_state :
+                current_state = elt
+        
+        print(current_state.transitions)
+        
 
 class State:
 
@@ -47,10 +64,20 @@ class State:
         self.ID = ID
         self.transitions = transitions
         self.transact = transact
+    
+    def __repr__(self) -> str:
+        print("ID : ",self.ID)
+        print("transitions : ",self.transitions)
+        print("transact : ",self.transact)
+        return ""
 
     @classmethod
     def from_initState(cls, state: str, n_states: int, initState: dict, encoding: dict):
+        
         state_ID = encoding[state]
+        
+        #print("from_initState : ",state,state_ID)
+        
         transitions = []
         list_actions = list(initState.keys())
         n_actions = len(list_actions)
@@ -58,6 +85,7 @@ class State:
         # For each action in this state
         for l in range(n_actions):
             action = list_actions[l]
+            #print("action : ",action)
             if action == "transact":
                 pass
             else:
@@ -77,6 +105,14 @@ class Transition:
         self.ID_from = ID_from
         self.ID_to = ID_to
         self.matrix = matrix
+    
+    def __repr__(self) -> str:
+        print("ID : " + str(self.ID))
+        print("ID_from : " + str(self.ID_from))
+        print("ID_to : " + str(self.ID_to))
+        print("matrix :")
+        print(self.matrix)
+        return ""
 
     @classmethod
     def from_initTransition(cls, ID: int, ID_from: int, n_states: int, initTransition: dict, encoding: dict):
@@ -166,11 +202,16 @@ def main():
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
 
+    print("\n initMDP:",initMDP,"\n")
     mdp = MDP.from_initMDP(initMDP)
-    print(mdp.T)
+    
+    #print("mdp.T : ", mdp.T)
+    """
     for state in mdp.S:
         for transition in state.transitions:
             print(transition.matrix)
+    """
+    mdp.run()
 
 if __name__ == '__main__':
     main()
