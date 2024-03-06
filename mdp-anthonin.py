@@ -15,7 +15,8 @@ class MDP:
 
     @classmethod
     def from_initMDP(cls, initMDP: dict):
-
+        
+        
         # Create and populate the routing table
         encoding = dict()
         c_state = 0
@@ -26,6 +27,9 @@ class MDP:
             for action in initMDP[state].keys():
                 encoding[state + "_" + action] = c_action
                 c_action += 1
+        
+        print("class methode : ", encoding)
+        
         
         # Create and populate the State objects
         states = []
@@ -43,30 +47,37 @@ class MDP:
 
     def run(self):
         correct_answer = False
-        names_states_list = [str(elt.ID) for elt in self.S]
+        names_states_list = [elt.name for elt in self.S]
         while not(correct_answer) :
             print("The available states are :")
             print(names_states_list)
             first_state = input("Enter the name of the state you want to start with")
             correct_answer = first_state in names_states_list
-            print("\n",correct_answer)
         
         for elt in self.S :
-            if str(elt.ID) == first_state :
+            if elt.name == first_state :
                 current_state = elt
         
-        print(current_state.transitions)
+        print("You have chosen ", current_state.name)
+        print("")
+        print(len(current_state.transitions))
+        
+        
+        
+        
         
 
 class State:
 
-    def __init__(self, ID: int, transitions: list, transact: bool):
+    def __init__(self, ID: int, name :str, transitions: list, transact: bool):
         self.ID = ID
+        self.name = name
         self.transitions = transitions
         self.transact = transact
     
     def __repr__(self) -> str:
         print("ID : ",self.ID)
+        print("name : ", self.name)
         print("transitions : ",self.transitions)
         print("transact : ",self.transact)
         return ""
@@ -76,11 +87,12 @@ class State:
         
         state_ID = encoding[state]
         
-        #print("from_initState : ",state,state_ID)
+        print("from_initState : ",initState)
         
         transitions = []
         list_actions = list(initState.keys())
-        n_actions = len(list_actions)
+        print(list_actions)
+        n_actions = len(list_actions) - 1 #FIXME #On fait -1 pour ne pas prendre en compte 'transact'
 
         # For each action in this state
         for l in range(n_actions):
@@ -91,23 +103,26 @@ class State:
             else:
                 transitions.append(Transition.from_initTransition(
                     encoding[state + "_" + action],
+                    action,
                     state_ID,
                     n_states,
                     initState[action],
                     encoding
                 ))
 
-        return cls(state_ID, transitions, initState["transact"])
+        return cls(state_ID, state, transitions, initState["transact"])
 
 class Transition:
-    def __init__(self, ID: int, ID_from: int, ID_to: list, matrix):
+    def __init__(self, ID : int, name: str, ID_from: int, ID_to: list, matrix):
         self.ID = ID
+        self.name = name
         self.ID_from = ID_from
         self.ID_to = ID_to
         self.matrix = matrix
     
     def __repr__(self) -> str:
         print("ID : " + str(self.ID))
+        print("name : ", self.name)
         print("ID_from : " + str(self.ID_from))
         print("ID_to : " + str(self.ID_to))
         print("matrix :")
@@ -115,8 +130,9 @@ class Transition:
         return ""
 
     @classmethod
-    def from_initTransition(cls, ID: int, ID_from: int, n_states: int, initTransition: dict, encoding: dict):
+    def from_initTransition(cls, ID: int, name : str, ID_from: int, n_states: int, initTransition: dict, encoding: dict):
         states_to = initTransition["states_to"]
+        print(states_to)
         weights = initTransition["weights"]
         sum_weights = sum(weights)
         new_action = np.zeros((n_states, n_states))
@@ -128,9 +144,10 @@ class Transition:
         for j in range(len(states_to)):
             column = encoding[states_to[j]]
             probability = weights[j]/sum_weights
+            
             new_action[ID_from][column] = probability
         
-        return cls(ID, ID_from, ID_to, new_action)
+        return cls(ID, name, ID_from, ID_to, new_action)
     
     def get_next_state_ID(self, current_state_ID):
         list_prob = self.matrix[current_state_ID]
@@ -148,7 +165,6 @@ class gramPrintListener(gramListener):
 
     def __init__(self, initMDP, tmp = dict()):
         self.initMDP = initMDP
-        self.all_states_and_transitions = tmp
         
     def enterDefstates(self, ctx):
         ids = [str(x) for x in ctx.ID()]
@@ -166,7 +182,7 @@ class gramPrintListener(gramListener):
     def enterTransact(self, ctx):
         ids = [str(x) for x in ctx.ID()]
         print("ids enterTransact : ", ids)
-        self.all_states_and_transitions[str(ids[0]+ids[1])] = [ids[2:]]
+        
         dep = ids.pop(0)
         act = ids.pop(0)
         weights = [int(str(x)) for x in ctx.INT()]
@@ -184,6 +200,7 @@ class gramPrintListener(gramListener):
         dep = ids.pop(0)
         weights = [int(str(x)) for x in ctx.INT()]
         print("Transition from " + dep + " with no action and targets " + str(ids) + " with weights " + str(weights))
+        
         
         # Populate initMDP
         self.initMDP[dep]["tna"] = {
@@ -207,11 +224,6 @@ def main():
     
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
-    
-    ctx = printer.ctx
-    ids = [str(x) for x in ctx.ID()]
-    print("ids : ", ids)
-    dep = ids.pop(0)
 
     print("\n initMDP:",initMDP,"\n")
     mdp = MDP.from_initMDP(initMDP)
