@@ -221,29 +221,31 @@ class Transition:
     
 class gramPrintListener(gramListener):
 
-    def __init__(self, initMDP, verify_actions = []):
+    def __init__(self, initMDP, defined_actions = [],defined_states = []):
         self.initMDP = initMDP
-        self.verify_actions = verify_actions
+        self.defined_actions = defined_actions
+        self.defined_states = defined_states
         
     def enterDefstates(self, ctx):
         ids = [str(x) for x in ctx.ID()]
         print("States: %s" % str([str(x) for x in ctx.ID()]))
+        self.defined_states = [str(x) for x in ctx.ID()]
 
         # Populate initMDP
         for id in ids:
             self.initMDP[id] = dict()
-        
-        self.ctx = ctx
 
     def enterDefactions(self, ctx):
         print("Actions: %s" % str([str(x) for x in ctx.ID()]))
-        self.verify_actions = [str(x) for x in ctx.ID()]
+        self.defined_actions = [str(x) for x in ctx.ID()]
         
 
     def enterTransact(self, ctx):
         ids = [str(x) for x in ctx.ID()]
         dep = ids.pop(0)
+        assert self.verify_states(dep)
         act = ids.pop(0)
+        assert self.verify_actions(act)
         weights = [int(str(x)) for x in ctx.INT()]
         print("Transition from " + dep + " with action "+ act + " and targets " + str(ids) + " with weights " + str(weights))
 
@@ -257,6 +259,7 @@ class gramPrintListener(gramListener):
     def enterTransnoact(self, ctx):
         ids = [str(x) for x in ctx.ID()]
         dep = ids.pop(0)
+        assert self.verify_states(dep)
         weights = [int(str(x)) for x in ctx.INT()]
         print("Transition from " + dep + " with no action and targets " + str(ids) + " with weights " + str(weights))
         
@@ -268,8 +271,45 @@ class gramPrintListener(gramListener):
         }
         self.initMDP[dep]["transact"] = False
     
-    def verify_entry(self) :
+    def verify_states(self,name) :
+        if not(name in self.defined_states) :
+            print("The state ",name," is not defined, please change your input file")
+            return False
+        else :
+            return True
         
+    def verify_actions(self,name):
+        if not(name in self.defined_actions) :
+            print("The action ",name," is not defined, please change your input file")
+            return False
+        else :
+            return True
+        """
+        #1ere étape : vérifier que les états définis sont bien ceux utilisés
+        used_states = list(self.initMDP.keys())
+        if used_states != self.defined_states :
+            print("used states : ",used_states,"definied states at the beginning: ",self.defined_states)
+            print("The states you specified don't match those used, please change your input file")
+            all_is_good = False
+        
+        # 2e étapeles actions utilisées sont bien toutes utilisées
+        list_action_used = []
+        for state in used_states :
+            action_used = self.initMDP[state]
+            for a in action_used :
+                if a == 'tna' or a == 'weights' or a == 'transact' :
+                    pass
+                else :
+                    if not (a in list_action_used) :
+                        list_action_used.append(a)
+        
+        if list_action_used != self.defined_actions :
+            print("used actions : ",list_action_used,"defined state ath the beginning : ",self.verify_actions)
+            print("The actions you sepcified don't match those used, please change your input file")
+            all_is_good = False
+        
+        return all_is_good
+        """
 
 
 
@@ -277,7 +317,7 @@ def main():
     initMDP = dict()
 
     # lexer = gramLexer(StdinStream())
-    lexer = gramLexer(FileStream("ex.mdp"))
+    lexer = gramLexer(FileStream("ex2.mdp"))
     stream = CommonTokenStream(lexer)
     parser = gramParser(stream)
     tree = parser.program()
@@ -292,15 +332,14 @@ def main():
     print("ids : ", ids)
     dep = ids.pop(0)
     """
-    
     mdp = MDP.from_initMDP(initMDP)
-    
+    mdp.run()
     """
     for state in mdp.S:
         for transition in state.transitions:
             print(transition.matrix)
     """
-    mdp.run()
+   
 
 if __name__ == '__main__':
     main()
