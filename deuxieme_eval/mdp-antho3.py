@@ -137,7 +137,7 @@ class MDP:
                     answer = input("Do you want to continue ? (y for yes, n for no) :\n")
                     if answer == "y" :
                         flag = True
-                        self.run(nb_states_random,next_state, chemin, current_reward)
+                        self.run(nb_states_random, next_state, chemin, current_reward)
                     elif answer == "n" :
                         flag = True
                         print(chemin)
@@ -150,6 +150,50 @@ class MDP:
         else :
             print(f"Total reward : {reward}")
             print(chemin)
+    
+    
+    def calcul_proba(goal : list(str)):
+        """
+        Fonction qui permet de calculer la probabibilité d'atteindre un état ou un ensemble d'état
+        
+        goal : list(str)
+            l'ensemble d'état à atteindre
+        """
+        
+        #Détection de S0 et S1
+        S1 = [goal[i] for i in range(len(goal))]
+        S0 = []
+        
+        finished = False
+        
+        while not(finished) :
+            changement = 0
+            for state in self.S :
+                for transition in state.transitions :
+                    list_possible_next_states = transition.ID_to
+                    all_S1 = True
+                    all_S0 = True
+                    i = 0
+                    while (i < len(list_possible_next_states)) and  (all_S1 or all_S0):
+                        future_state = list_possible_next_states[i]
+                        if not(future_state in S1):
+                            all_S1 = False
+                        if not(future_state in S0):
+                            all_S0 = False
+                        i += 1
+                    if all_S1 :
+                        S1.append([state,transition])
+                        changement += 1
+                    if all_S0 :
+                        S0.append([state,transition])
+                        changement += 1
+            if changement == 0 :
+                finished = True
+                
+                    
+                    
+                    
+        
         
 
 class State:
@@ -357,6 +401,9 @@ def main():
     
     #print(mdp.S)
     
+    
+    ###################################################
+    #Partie run
     answer = input("Do you want to play randomly ? [y/n]")
     while not(answer == "y" or answer == "n") :
         answer = input("Do you want to play randomly ? [y/n]")
@@ -371,6 +418,9 @@ def main():
             except ValueError:
                 print("Oops!  That was no valid number.  Try again...")
         mdp.run(nb_run)
+    ###################################################
+    #Partie calcul proba éventuellement
+    
         
     """
     for state in mdp.S:
