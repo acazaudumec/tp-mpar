@@ -41,7 +41,8 @@ class MDP:
 
         return cls(states, encoding)
 
-    def run(self,current_state = None):
+    def run(self,current_state = None, chemin = []):
+        
         correct_answer = False
         names_states_list = [elt.name for elt in self.S]
         
@@ -61,7 +62,12 @@ class MDP:
         else :
             print("\nThe current state is :", current_state.name)
         
-        if current_state.transact == False :
+        if current_state.transact == 2 :
+            print("You have reached a terminal state : ", current_state.name)
+            print(chemin)
+            return chemin
+
+        elif current_state.transact == False :
             print("There is no action possible")
             #On récupère la transition actuelle :
             current_transition = current_state.transitions[0]
@@ -120,14 +126,17 @@ class MDP:
             answer = input("Do you want to continue ? (y for yes, n for no) :\n")
             if answer == "y" :
                 flag = True
-                self.run(next_state)
+                chemin.append([current_state.name, current_transition.name])
+                self.run(next_state, chemin)
             elif answer == "n" :
                 flag = True
+                print(chemin)
+                return chemin
         
 
 class State:
 
-    def __init__(self, ID: int, name : str, transitions: list, transact: bool):
+    def __init__(self, ID: int, name : str, transitions: list, transact: int):
         self.ID = ID
         self.name = name
         self.transitions = transitions
@@ -234,11 +243,11 @@ class gramPrintListener(gramListener):
         # Populate initMDP
         for id in ids:
             self.initMDP[id] = dict()
+            self.initMDP[id]["transact"] = 2
 
     def enterDefactions(self, ctx):
         print("Actions: %s" % str([str(x) for x in ctx.ID()]))
         self.defined_actions = [str(x) for x in ctx.ID()]
-        
 
     def enterTransact(self, ctx):
         ids = [str(x) for x in ctx.ID()]
@@ -249,12 +258,23 @@ class gramPrintListener(gramListener):
         weights = [int(str(x)) for x in ctx.INT()]
         print("Transition from " + dep + " with action "+ act + " and targets " + str(ids) + " with weights " + str(weights))
 
+        #On vérifie qu'on a pas deux fois le même nom d'action
+        if act in self.initMDP[dep].keys():
+            print("2 actions have the same name for this state : ", dep)
+            assert True == False
+        
         # Populate initMDP
         self.initMDP[dep][act] = {
             "states_to": ids,
             "weights": weights
         }
-        self.initMDP[dep]["transact"] = True
+        self.initMDP[dep]["transact"] = 1
+        
+        #On vérifie qu'on ne mélange pas les types de transitions
+        if "tna" in self.initMDP[dep].keys():
+            print("An other kind of transition is already defined for this state : ",dep)
+            assert True == False
+        
         
     def enterTransnoact(self, ctx):
         ids = [str(x) for x in ctx.ID()]
@@ -263,13 +283,18 @@ class gramPrintListener(gramListener):
         weights = [int(str(x)) for x in ctx.INT()]
         print("Transition from " + dep + " with no action and targets " + str(ids) + " with weights " + str(weights))
         
+        #On vérifie qu'on ne mélange pas les types de transitions
+        if len(self.initMDP[dep]) >= 2 :
+            print("An other transition is already defined for this state : ",dep)
+            assert False == True
+        
         # Populate initMDP
         self.initMDP[dep]["tna"] = {
             "states_to": ids,
             "weights": weights,
-            "transact": False
+            #"transact": False
         }
-        self.initMDP[dep]["transact"] = False
+        self.initMDP[dep]["transact"] = 0
     
     def verify_states(self,name) :
         if not(name in self.defined_states) :
@@ -284,32 +309,6 @@ class gramPrintListener(gramListener):
             return False
         else :
             return True
-        """
-        #1ere étape : vérifier que les états définis sont bien ceux utilisés
-        used_states = list(self.initMDP.keys())
-        if used_states != self.defined_states :
-            print("used states : ",used_states,"definied states at the beginning: ",self.defined_states)
-            print("The states you specified don't match those used, please change your input file")
-            all_is_good = False
-        
-        # 2e étapeles actions utilisées sont bien toutes utilisées
-        list_action_used = []
-        for state in used_states :
-            action_used = self.initMDP[state]
-            for a in action_used :
-                if a == 'tna' or a == 'weights' or a == 'transact' :
-                    pass
-                else :
-                    if not (a in list_action_used) :
-                        list_action_used.append(a)
-        
-        if list_action_used != self.defined_actions :
-            print("used actions : ",list_action_used,"defined state ath the beginning : ",self.verify_actions)
-            print("The actions you sepcified don't match those used, please change your input file")
-            all_is_good = False
-        
-        return all_is_good
-        """
 
 
 
@@ -317,7 +316,7 @@ def main():
     initMDP = dict()
 
     # lexer = gramLexer(StdinStream())
-    lexer = gramLexer(FileStream("ex2.mdp"))
+    lexer = gramLexer(FileStream("fichier4-prob.mdp"))
     stream = CommonTokenStream(lexer)
     parser = gramParser(stream)
     tree = parser.program()
@@ -326,12 +325,8 @@ def main():
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
     
-    """
-    ctx = printer.ctx
-    ids = [str(x) for x in ctx.ID()]
-    print("ids : ", ids)
-    dep = ids.pop(0)
-    """
+    print(initMDP)
+    
     mdp = MDP.from_initMDP(initMDP)
     mdp.run()
     """
