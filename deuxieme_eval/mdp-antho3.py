@@ -41,22 +41,24 @@ class MDP:
 
         return cls(states, encoding)
 
-    def run(self,nb_states_random = None, current_state = None, chemin = []):
+    def run(self,nb_states_random = None, current_state = None, chemin = [], reward = 0):
         
         if nb_states_random == None or (type(nb_states_random) == type(1) and nb_states_random > 0) :
         
             if current_state == None :
                 current_state = self.S[0]
+                current_reward = reward + current_state.reward
                 if nb_states_random == None :
-                    print(f"The current state is : {current_state.name}")
+                    print(f"The current state is : {current_state.name}, reward : {current_reward}")
                 
             else :
+                current_reward = reward + current_state.reward
                 if nb_states_random == None :
-                    print("\nThe current state is :", current_state.name)
+                    print(f"\nThe current state is : {current_state.name}, reward : {current_reward}")
             
             if current_state.transact == 2 :
                 if nb_states_random == None :
-                    print("You have reached a terminal state : ", current_state.name)
+                    print(f"You have reached a terminal state : {current_state.name}, reward : {current_reward}")
                 print(chemin)
                 return chemin
 
@@ -135,30 +137,34 @@ class MDP:
                     answer = input("Do you want to continue ? (y for yes, n for no) :\n")
                     if answer == "y" :
                         flag = True
-                        self.run(next_state, chemin)
+                        self.run(nb_states_random,next_state, chemin, current_reward)
                     elif answer == "n" :
                         flag = True
                         print(chemin)
+                        print(f"Total reward : {current_reward}")
                         return chemin
             
             else :
-                self.run(nb_states_random-1,next_state, chemin)
+                self.run(nb_states_random-1,next_state, chemin, current_reward)
             
         else :
+            print(f"Total reward : {reward}")
             print(chemin)
         
 
 class State:
 
-    def __init__(self, ID: int, name : str, transitions: list, transact: int):
+    def __init__(self, ID: int, name : str, reward : float, transitions: list, transact: int):
         self.ID = ID
         self.name = name
+        self.reward = reward
         self.transitions = transitions
         self.transact = transact
     
     def __repr__(self) -> str:
         print("ID : ",self.ID)
         print("name : ", self.name)
+        print("reward :", self.reward)
         print("transitions : ",self.transitions)
         print("transact : ",self.transact)
         return ""
@@ -177,7 +183,7 @@ class State:
         # For each action in this state
         for l in range(n_actions):
             action = list_actions[l]
-            if action == "transact":
+            if action == "transact" or action == "reward":
                 pass
             else:
                 transitions.append(Transition.from_initTransition(
@@ -189,7 +195,7 @@ class State:
                     encoding
                 ))
 
-        return cls(state_ID, state, transitions, initState["transact"])
+        return cls(state_ID, state, initState["reward"], transitions, initState["transact"])
 
 class Transition:
     def __init__(self, ID: int, name : str, ID_from: int, ID_to: list, matrix):
@@ -244,10 +250,11 @@ class Transition:
     
 class gramPrintListener(gramListener):
 
-    def __init__(self, initMDP, defined_actions = [],defined_states = []):
+    def __init__(self, initMDP, defined_actions = [],defined_states = [], rewards = []):
         self.initMDP = initMDP
         self.defined_actions = defined_actions
         self.defined_states = defined_states
+        self.rewards = rewards
         
     def enterDefstates(self, ctx):
         ids = [str(x) for x in ctx.ID()]
@@ -255,11 +262,14 @@ class gramPrintListener(gramListener):
         print("States: %s" % str([str(x) for x in ctx.ID()]))
         print(f"Rewards : {rewards}")
         self.defined_states = [str(x) for x in ctx.ID()]
+        self.rewards = [int(str(r)) for r in ctx.INT()]
 
         # Populate initMDP
-        for id in ids:
+        for i in range(len(ids)):
+            id = ids[i]
             self.initMDP[id] = dict()
             self.initMDP[id]["transact"] = 2
+            self.initMDP[id]["reward"] = rewards[i]
 
     def enterDefactions(self, ctx):
         print("Actions: %s" % str([str(x) for x in ctx.ID()]))
@@ -300,7 +310,7 @@ class gramPrintListener(gramListener):
         print("Transition from " + dep + " with no action and targets " + str(ids) + " with weights " + str(weights))
         
         #On vérifie qu'on ne mélange pas les types de transitions
-        if len(self.initMDP[dep]) >= 2 :
+        if len(self.initMDP[dep]) >= 3 :
             print("An other transition is already defined for this state : ",dep)
             assert False == True
         
@@ -344,6 +354,8 @@ def main():
     #print(initMDP)
     
     mdp = MDP.from_initMDP(initMDP)
+    
+    #print(mdp.S)
     
     answer = input("Do you want to play randomly ? [y/n]")
     while not(answer == "y" or answer == "n") :
