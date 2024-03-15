@@ -4,7 +4,7 @@ from gramListener import gramListener
 from gramParser import gramParser
 import sys
 import numpy as np
-from random import random
+from random import random, randint
 import sys
 
 class MDP:
@@ -41,97 +41,111 @@ class MDP:
 
         return cls(states, encoding)
 
-    def run(self,current_state = None, chemin = []):
+    def run(self,nb_states_random = None, current_state = None, chemin = []):
         
-        correct_answer = False
-        names_states_list = [elt.name for elt in self.S]
+        if nb_states_random == None or (type(nb_states_random) == type(1) and nb_states_random > 0) :
         
-        if current_state == None :
-            while not(correct_answer) :
-                print("\nThe available states are :")
-                print(names_states_list)
-                first_state = input("Enter the name of the state you want to start with :\n")
-                correct_answer = first_state in names_states_list
-        
-            for elt in self.S :
-                if elt.name == first_state :
-                    current_state = elt
-                    
-            print("\nYou have chosen ", current_state.name)
-            
-        else :
-            print("\nThe current state is :", current_state.name)
-        
-        if current_state.transact == 2 :
-            print("You have reached a terminal state : ", current_state.name)
-            print(chemin)
-            return chemin
-
-        elif current_state.transact == False :
-            print("There is no action possible")
-            #On récupère la transition actuelle :
-            current_transition = current_state.transitions[0]
-        
-        else :
-            #Dans le cas où il n'y a qu'une seul action possible - idem que pas d'actions mais avec 2 lignes de texte en plus aux lignes 91 et 92
-            if len(current_state.transitions) == 1 :
-                current_transition = current_state.transitions[0]
-                print("There is only one action possible and it's : ", current_transition.name)
-                print("You have chosen the action named : ",current_transition.name)
-                #On récupère la transition actuelle :
-                current_transition = current_state.transitions[0]
+            if current_state == None :
+                current_state = self.S[0]
+                if nb_states_random == None :
+                    print(f"The current state is : {current_state.name}")
                 
-            #Dans le cas où il ya plusieurs actions possibles
             else :
-                print("There are ",len(current_state.transitions)," possible actions")
-                possible_transitions = [transi.name for transi in current_state.transitions]
-                print("These actions are : ", possible_transitions)
-                
-                bien_choisi = False
-                while not(bien_choisi) :
-                    action = input("Choose one action among the possible ones :\n")
-                    bien_choisi = action in possible_transitions
-                
-                i = 0
-                current_transition = current_state.transitions[i]
-                while action != current_transition.name :
-                    i += 1
-                    current_transition = current_state.transitions[i]
-                
-                print("You have chosen the action named : ",current_transition.name)
-                #On récupère la transition actuelle :
-                current_transition = current_state.transitions[0]
-    
-        #On affiche les possibilités à l'utilisateur :
-        possible_next_states_ID = current_transition.ID_to
-        possible_next_states_name = []
-        for ID in possible_next_states_ID :
-            for elt in self.S :
-                if elt.ID == ID :
-                    possible_next_states_name.append(elt.name)
-        print("The next possible states are : ", possible_next_states_name)
-        #On affiche les porbabilités à l'utlisateur :
-        list_prob = current_transition.matrix[current_transition.ID_from]
-        list_prob = [list_prob[i] for i in possible_next_states_ID]
-        print("With a probability respectively of : ",list_prob)
-        #On regarde quel sera le prochain état :
-        next_state_ID = current_transition.get_next_state_ID(current_state.ID)
-        for elt in self.S :
-            if next_state_ID == elt.ID :
-                next_state = elt
-        print("The next state is : ",next_state.name)
-
-        flag = False
-        while not(flag) :
-            answer = input("Do you want to continue ? (y for yes, n for no) :\n")
-            if answer == "y" :
-                flag = True
-                chemin.append([current_state.name, current_transition.name])
-                self.run(next_state, chemin)
-            elif answer == "n" :
-                flag = True
+                if nb_states_random == None :
+                    print("\nThe current state is :", current_state.name)
+            
+            if current_state.transact == 2 :
+                if nb_states_random == None :
+                    print("You have reached a terminal state : ", current_state.name)
                 print(chemin)
                 return chemin
+
+            elif current_state.transact == False :
+                if nb_states_random == None :
+                    print("There is no action possible")
+                #On récupère la transition actuelle :
+                current_transition = current_state.transitions[0]
+            
+            else :
+                #Dans le cas où il n'y a qu'une seul action possible - idem que pas d'actions mais avec 2 lignes de texte en plus aux lignes 91 et 92
+                if len(current_state.transitions) == 1 :
+                    current_transition = current_state.transitions[0]
+                    if nb_states_random == None :
+                        print("There is only one action possible and it's : ", current_transition.name)
+                        print("You have chosen the action named : ",current_transition.name)
+                    #On récupère la transition actuelle :
+                    current_transition = current_state.transitions[0]
+                    
+                #Dans le cas où il ya plusieurs actions possibles
+                else :
+                    if nb_states_random == None :
+                        print("There are ",len(current_state.transitions)," possible actions")
+                    possible_transitions = [transi.name for transi in current_state.transitions]
+                    if nb_states_random == None :
+                        print("These actions are : ", possible_transitions)
+                    
+                    if nb_states_random == None :
+                        bien_choisi = False
+                        while not(bien_choisi) :
+                            action = input("Choose one action among the possible ones :\n")
+                            bien_choisi = action in possible_transitions
+                        i = 0
+                        current_transition = current_state.transitions[i]
+                        while action != current_transition.name :
+                            i += 1
+                            current_transition = current_state.transitions[i]
+                    
+                    else :
+                        random_transi = randint(0,len(current_state.transitions)-1)
+                        current_transition = current_state.transitions[random_transi]
+                    
+                    if nb_states_random == None :
+                        print("You have chosen the action named : ",current_transition.name)
+                    #On récupère la transition actuelle :
+                    current_transition = current_state.transitions[0]
+    
+    
+            chemin.append([current_state.name, current_transition.name])
+        
+            #On affiche les possibilités à l'utilisateur :
+            possible_next_states_ID = current_transition.ID_to
+            possible_next_states_name = []
+            for ID in possible_next_states_ID :
+                for elt in self.S :
+                    if elt.ID == ID :
+                        possible_next_states_name.append(elt.name)
+            if nb_states_random == None :
+                print("The next possible states are : ", possible_next_states_name)
+            #On affiche les porbabilités à l'utlisateur :
+            list_prob = current_transition.matrix[current_transition.ID_from]
+            list_prob = [list_prob[i] for i in possible_next_states_ID]
+            if nb_states_random == None :
+                print("With a probability respectively of : ",list_prob)
+            #On regarde quel sera le prochain état :
+            next_state_ID = current_transition.get_next_state_ID(current_state.ID)
+            for elt in self.S :
+                if next_state_ID == elt.ID :
+                    next_state = elt
+            if nb_states_random == None :
+                print("The next state is : ",next_state.name)
+
+            if nb_states_random == None :
+                flag = False
+                while not(flag) :
+                    answer = input("Do you want to continue ? (y for yes, n for no) :\n")
+                    if answer == "y" :
+                        flag = True
+                        self.run(next_state, chemin)
+                    elif answer == "n" :
+                        flag = True
+                        print(chemin)
+                        return chemin
+            
+            else :
+                self.run(nb_states_random-1,next_state, chemin)
+            
+        else :
+            print(chemin)
         
 
 class State:
@@ -237,7 +251,9 @@ class gramPrintListener(gramListener):
         
     def enterDefstates(self, ctx):
         ids = [str(x) for x in ctx.ID()]
+        rewards = [int(str(r)) for r in ctx.INT()]
         print("States: %s" % str([str(x) for x in ctx.ID()]))
+        print(f"Rewards : {rewards}")
         self.defined_states = [str(x) for x in ctx.ID()]
 
         # Populate initMDP
@@ -315,8 +331,8 @@ class gramPrintListener(gramListener):
 def main():
     initMDP = dict()
 
-    # lexer = gramLexer(StdinStream())
-    lexer = gramLexer(FileStream("fichier4-prob.mdp"))
+    #lexer = gramLexer(StdinStream())
+    lexer = gramLexer(FileStream("ex.mdp"))
     stream = CommonTokenStream(lexer)
     parser = gramParser(stream)
     tree = parser.program()
@@ -325,10 +341,25 @@ def main():
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
     
-    print(initMDP)
+    #print(initMDP)
     
     mdp = MDP.from_initMDP(initMDP)
-    mdp.run()
+    
+    answer = input("Do you want to play randomly ? [y/n]")
+    while not(answer == "y" or answer == "n") :
+        answer = input("Do you want to play randomly ? [y/n]")
+    if answer == "n" :
+        mdp.run()
+    else :
+        valid_answer = False
+        while not(valid_answer) :
+            try:
+                nb_run = int(input("How many states do you want to go through ?: "))
+                valid_answer = True
+            except ValueError:
+                print("Oops!  That was no valid number.  Try again...")
+        mdp.run(nb_run)
+        
     """
     for state in mdp.S:
         for transition in state.transitions:
