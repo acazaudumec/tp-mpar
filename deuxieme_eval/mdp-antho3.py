@@ -152,12 +152,57 @@ class MDP:
             print(chemin)
     
     
-    def S0_S1_Su_search(self,goal) :
+    def adversaire_aleatoire(self):
+        """
+        Renvoie une politique à suivre construite aléatoirement
+        """
+        politique = dict()
+        for state in self.S:
+            random_int = np.random.randint(0,len(state.transitions))
+            random_transi = state.transitions[random_int]
+            politique[state.name] = random_transi.name
+        
+        return politique
+    
+    def adversaire_input(self):
+        """
+        Demande à l'utilisateur de choisir une politique
+        """
+        print("\nPlease define a politic")
+        politique  = dict()
+        for state in self.S:
+            list_transition_name = [t.name for t in state.transitions]
+            if len(list_transition_name) == 1:
+                print(f"\nNo need of a choice for this state : {state.name}")
+                politique[state.name] = list_transition_name[0]
+            else :
+                print(f"\nCurrent state : {state.name}, choose among these transitions :")
+                print(list_transition_name)
+                correct_anwer = False
+                while not correct_anwer :
+                    try:
+                        print(f"\nChoose among these transitions : {list_transition_name}")
+                        answer = input()
+                        assert answer in list_transition_name
+                        correct_anwer = True
+                    except AssertionError:
+                        print("\nNot a valid answer")
+                        
+                politique[state.name] = answer
+            
+        return politique
+                
+    
+    def S0_S1_Su_search(self,goal,politique = None) :
         """
         Fonction qui permet de trouver S0,S1 et S? (S unknown)
         
         goal : list(str)
             l'ensemble d'état à atteindre (S1) référencé par leur nom
+        
+        politique : dict(str:str)
+            la politique à adopter lorsque l'on fait un choix
+            Si c'est None alors on construit un adversaire aléatoire
         """
         
         #Détection de S0 et S1
@@ -237,9 +282,9 @@ class MDP:
         """
         
         #On construit l'adversaire aléatoire si politique est différent de None
-        if politique == None :
-        
-        #HERE
+        # if politique == None :
+        #     for 
+        #HERE #FIXME
         
         #On récupère les informations donnée par la fonction de recherche de S0,S1 et Su
         S0,S1,Su = self.S0_S1_Su_search(goal)
@@ -320,8 +365,6 @@ class State:
     def from_initState(cls, state: str, n_states: int, initState: dict, encoding: dict):
         
         state_ID = encoding[state]
-        
-        #print("from_initState : ",state,state_ID)
         
         transitions = []
         list_actions = list(initState.keys())
@@ -488,8 +531,8 @@ class gramPrintListener(gramListener):
 def main():
     initMDP = dict()
 
-    lexer = gramLexer(StdinStream())
-    #lexer = gramLexer(FileStream("../fichiers_test_prof/fichier2-mc.mdp"))
+    #lexer = gramLexer(StdinStream())
+    lexer = gramLexer(FileStream("../fichiers_test_prof/fichier3-mdp.mdp"))
     stream = CommonTokenStream(lexer)
     parser = gramParser(stream)
     tree = parser.program()
@@ -498,11 +541,7 @@ def main():
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
     
-    #print(initMDP)
-    
     mdp = MDP.from_initMDP(initMDP)
-    
-    #print(mdp.S)
     
     
     ###################################################
@@ -524,8 +563,10 @@ def main():
     ###################################################
     #Partie calcul proba éventuellement
     
-    print(mdp.calcul_proba_inf(["F"]))
+    #print(mdp.calcul_proba_inf(["F"]))
     #print(mdp.S[0])
+    print(mdp.adversaire_aleatoire())
+    print(mdp.adversaire_input())
     """
     for state in mdp.S:
         for transition in state.transitions:
