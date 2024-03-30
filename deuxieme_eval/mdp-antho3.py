@@ -152,12 +152,12 @@ class MDP:
             print(chemin)
     
     
-    def calcul_proba(goal : list(str)):
+    def S0_S1_Su_search(self,goal) :
         """
-        Fonction qui permet de calculer la probabibilité d'atteindre un état ou un ensemble d'état
+        Fonction qui permet de trouver S0,S1 et S? (S unknown)
         
         goal : list(str)
-            l'ensemble d'état à atteindre
+            l'ensemble d'état à atteindre (S1) référencé par leur nom
         """
         
         #Détection de S0 et S1
@@ -166,34 +166,137 @@ class MDP:
         
         finished = False
         
-        while not(finished) :
-            changement = 0
-            for state in self.S :
-                for transition in state.transitions :
-                    list_possible_next_states = transition.ID_to
-                    all_S1 = True
-                    all_S0 = True
-                    i = 0
-                    while (i < len(list_possible_next_states)) and  (all_S1 or all_S0):
-                        future_state = list_possible_next_states[i]
-                        if not(future_state in S1):
-                            all_S1 = False
-                        if not(future_state in S0):
-                            all_S0 = False
-                        i += 1
-                    if all_S1 :
-                        S1.append([state,transition])
-                        changement += 1
-                    if all_S0 :
-                        S0.append([state,transition])
-                        changement += 1
-            if changement == 0 :
-                finished = True
+        while not(finished) : #Tant qu'on a pas fini
+            changement = 0 #si changement!=0 à la fin de la boucle, alors il y aura eu un ajout dans S0 ou S1
+            for state in self.S : #Pour chaque état
+                transition = state.transitions[0]
+                try:
+                    assert transition.name == "tna" #Si on est pas dans une chaine de markov, alors on ne peut pas utiliser la fonction #FIXME on pourrait suivre une politique dans un MDP
+                except AssertionError :
+                    print("The input is not a Markov Chain")
+                    sys.exit()
                 
-                    
-                    
-                    
+                list_possible_next_states_ID = transition.ID_to #on prend la liste des états à suivre
+                #Et on retrouve leur nom qu'on met dans list_possible_next_states
+                list_possible_next_states = []
+                for ID in list_possible_next_states_ID : #FIXME On devrait plutot stcoker les ID et pas chercher les noms à chaque fois
+                    for elt in self.S :
+                        if elt.ID == ID :
+                            list_possible_next_states.append(elt.name)
+                
+                
+                if len(list_possible_next_states) == 0 and (not(state.name in S1)) : #Si pas de successeur et que l'état courant n'est pas dans S1
+                    if not(state.name in S0) : #On vérifie qu'on a pas déjà ajouté cet état à la liste
+                        S0.append(state.name) #Alors c'est que l'état courant fait partie de S0
+                
+                elif len(list_possible_next_states) == 1 and (list_possible_next_states[0] == state.name) and (not(state.name in S1)) : #Idem si la seule transition va sur lui-même
+                    if not(state.name in S0) : #On vérifie qu'on a pas déjà ajouté cet état à la liste
+                        S0.append(state.name)
+                
+                else :
+                    all_S1 = True #Permet de vérifier si tous les états à suivre dans cette transition appartiennent à S1
+                    all_S0 = True #idem mais pour S0
+                    i = 0 #indice de parcours de la liste des états à suivre
+                    while (i < len(list_possible_next_states)) and  (all_S1 or all_S0): #Tant qu'on pas fait tous les états à suivre et que tous ceux qu'on a vu sont soit tous dans S0 soit tous dans S1
+                        future_state_name = list_possible_next_states[i] #on prend un état possible
+                        if not(future_state_name in S1): #S'il n'est pas dans S1 alors l'état courant n'est pas dans S1
+                            all_S1 = False
+                        if not(future_state_name in S0):#Idem pour S0
+                            all_S0 = False
+                        i += 1 #On passe au suivant
+                    if all_S1: #Si tous les états à suivre sont dans S1
+                        if not(state.name in S1) : #On vérifie qu'on a pas déjà ajouté cet état à la liste
+                            S1.append(state.name) #Alors on ajoute l'état actuel dans S1
+                            changement += 1 #On fait varier la valeur de la variable changement pour signifier qu'on a ajouté des états dans S1
+                    if all_S0 : #Idem dans S0
+                        if not(state.name in S0) : #On vérifie qu'on a pas déjà ajouté cet état à la liste
+                            S0.append(state.name)
+                            changement += 1 #Idem mais pour S0
+            if changement == 0 :#Si on a pas eu du changement dans S0 et S1 alors on arrête la recherche de S0 et S1
+                finished = True
+            
+            #On cherche maintenant Su (ie S?,S_unknown)
+            Su = []
+            for state in self.S:
+                if not(state.name in S0) and not(state.name in S1) :
+                    Su.append(state.name)
+
+        return S0,S1,Su
+
+
+    def calcul_proba_inf(self,goal,politique = None):
+        """
+        Fonction qui calcule la probabilité d'arriver dans un ou plusieurs états sans limite sur le nombre de transitions
         
+        goal : list(str)
+            l'ensemble d'état à atteindre (S1)
+        
+        politique : dict(str:str)
+            la politique à adopter lorsque l'on fait un choix
+            Si c'est None alors on construit un adversaire aléatoire
+        """
+        
+        #On construit l'adversaire aléatoire si politique est différent de None
+        if politique == None :
+        
+        #HERE
+        
+        #On récupère les informations donnée par la fonction de recherche de S0,S1 et Su
+        S0,S1,Su = self.S0_S1_Su_search(goal)
+        #On récupère les numéros d'ID associé à chaque nom dans Si_ID #FIXME Si on stcoke les numéros d'ID à l'avenir plus besoin de faire ça
+        S0_ID,S1_ID,Su_ID = [],[],[]
+        List_ID = [S0_ID,S1_ID,Su_ID]
+        List_name = [S0,S1,Su]
+        for k in range(3) :
+            Si = List_name[k]
+            Si_ID = List_ID[k]
+            for state_name in Si :
+                i = 0
+                while state_name != self.S[i].name :
+                    i += 1
+                Si_ID.append(i)
+        
+        print(List_name,"\n",List_ID)
+        
+        #1ere etape : construire la matrice
+        A = np.zeros((len(Su),len(Su)))
+        b = np.zeros(len(Su))
+        
+        #Pour chaque état unknown
+        for i in range(len(Su_ID)):
+            ID = Su_ID[i]
+            transition = self.S[ID].transitions[0]
+            #On récupère la matrice construite pour la transition
+            trans_matrix = transition.matrix
+            
+            #Maintenant on récupère uniquement les informations nécessaires
+            print(transition.ID_to,Su_ID)
+            #On parcours les états à suivre dans la transition en cours
+            for id_to in transition.ID_to:
+                #Si létat d'arrivée est dans les états inconnus
+                if id_to in Su_ID :
+                    #On retrouve le numéro de colonne correspondant dans la matrice A
+                    j = 0
+                    possible_next_state = Su_ID[j]
+                    while id_to != possible_next_state and j < len(Su_ID):
+                        j += 1
+                        possible_next_state = Su_ID[j]
+                        #j contient maintenant le numéro de colonne corespondant dans la matrice A
+                    A[i,j] = trans_matrix[ID,id_to]
+                    
+                #Sinon si l'état d'arrivée est dans les états à atteindre
+                elif id_to in S1_ID :
+                    #On ajoute la probabilité associée dans b
+                    b[i] += trans_matrix[ID,id_to]
+                
+        #On passe maintenant à la résolution
+        Aprime = np.eye(len(A)) - A
+        sol = np.linalg.solve(Aprime,b)
+        return sol
+        
+        
+        
+
         
 
 class State:
@@ -385,8 +488,8 @@ class gramPrintListener(gramListener):
 def main():
     initMDP = dict()
 
-    #lexer = gramLexer(StdinStream())
-    lexer = gramLexer(FileStream("ex.mdp"))
+    lexer = gramLexer(StdinStream())
+    #lexer = gramLexer(FileStream("../fichiers_test_prof/fichier2-mc.mdp"))
     stream = CommonTokenStream(lexer)
     parser = gramParser(stream)
     tree = parser.program()
@@ -404,24 +507,25 @@ def main():
     
     ###################################################
     #Partie run
-    answer = input("Do you want to play randomly ? [y/n]")
-    while not(answer == "y" or answer == "n") :
-        answer = input("Do you want to play randomly ? [y/n]")
-    if answer == "n" :
-        mdp.run()
-    else :
-        valid_answer = False
-        while not(valid_answer) :
-            try:
-                nb_run = int(input("How many states do you want to go through ?: "))
-                valid_answer = True
-            except ValueError:
-                print("Oops!  That was no valid number.  Try again...")
-        mdp.run(nb_run)
+    # answer = input("Do you want to play randomly ? [y/n]")
+    # while not(answer == "y" or answer == "n") :
+    #     answer = input("Do you want to play randomly ? [y/n]")
+    # if answer == "n" :
+    #     mdp.run()
+    # else :
+    #     valid_answer = False
+    #     while not(valid_answer) :
+    #         try:
+    #             nb_run = int(input("How many states do you want to go through ?: "))
+    #             valid_answer = True
+    #         except ValueError:
+    #             print("Oops!  That was no valid number.  Try again...")
+    #     mdp.run(nb_run)
     ###################################################
     #Partie calcul proba éventuellement
     
-        
+    print(mdp.calcul_proba_inf(["F"]))
+    #print(mdp.S[0])
     """
     for state in mdp.S:
         for transition in state.transitions:
