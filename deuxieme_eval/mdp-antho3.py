@@ -186,14 +186,11 @@ def main():
                     print("The value of min_explo_proba must be between 0 and 1, try again")
                     min_explo_proba = ""
 
-            print(mdp.Q_learning(alpha,gamma,nb_epochs,max_iter_epoch,explo_decay,min_explo_proba))
+            print(f"\nLa fonction Q :\n{mdp.Q_learning(alpha,gamma,nb_epochs,max_iter_epoch,explo_decay,min_explo_proba)}")
     
         else :
             print(mdp.Q_learning())
 
-    
-
-   
 
 if __name__ == '__main__':
     main()
