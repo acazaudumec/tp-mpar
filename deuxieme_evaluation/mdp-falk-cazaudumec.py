@@ -46,7 +46,7 @@ def main():
                     valid_answer = True
                 except ValueError:
                     print("Oops!  That was no valid number.  Try again...")
-            mdp.run(nb_run)
+            mdp.run(nb_states_random = nb_run)
     ###################################################
     #Partie calcul proba éventuellement
     choose = input("Do you want to calculate the probality to go in a state (without any restiction of the number of transition)?[y/n]\n")

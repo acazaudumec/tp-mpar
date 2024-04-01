@@ -70,9 +70,9 @@ class MDP:
             if current_state.transact == 2 or all_transi_to_same_state :
                 if nb_states_random == None :
                     print(f"You have reached a terminal state : {current_state.name}, reward : {current_reward}")
-                chemin.append([current_state.name, current_state.transitions[0].name])
-                print(chemin)
-                return chemin
+                chemin_final = chemin + [[current_state.name, current_state.transitions[0].name]]
+                print("chemin emprunté: ",chemin_final)
+                return chemin_final
 
             elif current_state.transact == False :
                 if nb_states_random == None :
@@ -149,19 +149,20 @@ class MDP:
                     answer = input("Do you want to continue ? (y for yes, n for no) :\n")
                     if answer == "y" :
                         flag = True
-                        self.run(nb_states_random, next_state, chemin, current_reward)
+                        chemin_final = self.run(nb_states_random, next_state, chemin, current_reward)
                     elif answer == "n" :
                         flag = True
-                        print(chemin)
+                        print("chemin emprunté : ",chemin)
                         print(f"Total reward : {current_reward}")
                         return chemin
             
             else :
-                self.run(nb_states_random-1,next_state, chemin, current_reward)
+                chemin_final = self.run(nb_states_random-1,next_state, chemin, current_reward)
             
         else :
             print(f"Total reward : {reward}")
-            print(chemin)
+            print("chemin emprunté : ",chemin)
+            return chemin_final
     
     
     def adversaire_aleatoire(self):
@@ -626,3 +627,12 @@ class MDP:
             print((i+1)*len(rewards_per_epoch)//10,": mean espiode reward: " ,np.mean(rewards_per_epoch[len(rewards_per_epoch)//10*i:len(rewards_per_epoch)//10*(i+1)]))
         
         return Q
+    
+    # def SMC_quantitatif(self,delta,epsilon, propriete) :
+    #     N = round( (m.log(2)-m.log(delta))/((2*epsilon)**2) ) +1
+    #     gamma = 0
+    #     for i in range(N):
+    #         if propriete(self.run()) == True :
+    #             gamma += 1
+    #     gamma = gamma/N
+    #     return gamma
