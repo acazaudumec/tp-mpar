@@ -56,9 +56,23 @@ class MDP:
                 if nb_states_random == None :
                     print(f"\nThe current state is : {current_state.name}, reward : {current_reward}")
             
-            if current_state.transact == 2 :
+            #On vérifie si on a atteint un état terminal
+            all_transi_to_same_state = True
+            i = 0
+            while i < len(current_state.transitions) and all_transi_to_same_state:
+                t = current_state.transitions[i]
+                j = 0
+                while j < len(t.ID_to) and all_transi_to_same_state:
+                    ID = t.ID_to[j]
+                    if ID != current_state.ID :
+                        all_transi_to_same_state = False
+                    j += 1
+                i += 1
+            #Si on en a atteint un , alors on s'arrête
+            if current_state.transact == 2 or all_transi_to_same_state :
                 if nb_states_random == None :
                     print(f"You have reached a terminal state : {current_state.name}, reward : {current_reward}")
+                chemin.append([current_state.name, current_state.transitions[0].name])
                 print(chemin)
                 return chemin
 
@@ -156,12 +170,13 @@ class MDP:
         """
         Renvoie une politique à suivre construite aléatoirement
         """
+        print("Choix d'un adversaire aléatoire")
         politique = dict()
         for state in self.S:
             random_int = np.random.randint(0,len(state.transitions))
             random_transi = state.transitions[random_int]
             politique[state.name] = random_transi.name
-        
+        print("politique : ",politique)
         return politique
     
     def adversaire_input(self):
@@ -189,7 +204,6 @@ class MDP:
                         print("\nNot a valid answer")
                         
                 politique[state.name] = answer
-            
         return politique
                 
     
@@ -204,6 +218,14 @@ class MDP:
             la politique à adopter lorsque l'on fait un choix
             Si c'est None alors on construit un adversaire aléatoire
         """
+        #On vérifie que les états goal appartiennent bien aux états présent dans l'input file
+        list_name_state = [s.name for s in self.S]
+        try :
+            for state in goal:
+                assert state in list_name_state
+        except AssertionError:
+            print("Oops, your goal ins't part of the input file.")
+            sys.exit()
         
         #Détection de S0 et S1
         S1 = [goal[i] for i in range(len(goal))]
@@ -214,12 +236,14 @@ class MDP:
         while not(finished) : #Tant qu'on a pas fini
             changement = 0 #si changement!=0 à la fin de la boucle, alors il y aura eu un ajout dans S0 ou S1
             for state in self.S : #Pour chaque état
-                transition = state.transitions[0]
-                try:
-                    assert transition.name == "tna" #Si on est pas dans une chaine de markov, alors on ne peut pas utiliser la fonction #FIXME on pourrait suivre une politique dans un MDP
-                except AssertionError :
-                    print("The input is not a Markov Chain")
-                    sys.exit()
+                i = 0
+                transition = state.transitions[i]
+                if politique == None :
+                    politique = self.adversaire_aleatoire()
+                
+                while transition.name != politique[state.name] :
+                    i += 1
+                    transition = state.transitions[i]
                 
                 list_possible_next_states_ID = transition.ID_to #on prend la liste des états à suivre
                 #Et on retrouve leur nom qu'on met dans list_possible_next_states
@@ -280,14 +304,63 @@ class MDP:
             la politique à adopter lorsque l'on fait un choix
             Si c'est None alors on construit un adversaire aléatoire
         """
+        #On vérifie que les états goal appartiennent bien aux états présents dans l'input file
+        list_name_state = [s.name for s in self.S]
+        try :
+            for state in goal:
+                assert state in list_name_state
+        except AssertionError:
+            print("Oops, your goal ins't part of the input file.")
+            sys.exit()
         
-        #On construit l'adversaire aléatoire si politique est différent de None
-        # if politique == None :
-        #     for 
-        #HERE #FIXME
+        #On construit l'adversaire aléatoire si la politique n'est pas définie
+        if politique == None :
+            politique = self.adversaire_aleatoire()
+        
+        #On vérifie que la politique n'empêche pas d'arriver dans les états goal
+        #On récupère les identifiants des états dans goal
+        ID_goal = []
+        for g in goal :
+            i = 0
+            possible_name = self.S[i].name
+            while possible_name != g :
+                i += 1
+                possible_name = self.S[i].name
+            ID_goal.append(self.S[i].ID)
+        accessible = False #Un booléen qui devient vrai si parmi les transitions choisie dans la politique il y en a une qui permet d'aller dans un état de goal
+        for name_state in politique.keys():
+            if name_state in goal :
+                pass
+            else :
+                name_transition  = politique[name_state]
+                #On récupère le bon état
+                i = 0
+                current_state = self.S[i]
+                while current_state.name != name_state :
+                    i += 1
+                    current_state = self.S[i]
+                #On récupère la bonne transition
+                i = 0
+                current_transi = current_state.transitions[i]
+                while current_transi.name != name_transition :
+                    i += 1
+                    current_transi = current_state.transitions[i]
+                #On regarde si les états dans goal sont bien accessibles
+                ID_next_states = current_transi.ID_to
+                for elt in ID_next_states:
+                    if elt in ID_goal:
+                        accessible = True
+       
+        try :
+            assert accessible == True
+        except AssertionError:
+            print("The politic chosen don't lead to the goal you specified")
+            sys.exit()
+            
         
         #On récupère les informations donnée par la fonction de recherche de S0,S1 et Su
-        S0,S1,Su = self.S0_S1_Su_search(goal)
+        S0,S1,Su = self.S0_S1_Su_search(goal,politique)
+        print(f"Pour cette politique on a trouvé :\tS0 : {S0},\tS1 : {S1},\tSu : {Su}")
         #On récupère les numéros d'ID associé à chaque nom dans Si_ID #FIXME Si on stcoke les numéros d'ID à l'avenir plus besoin de faire ça
         S0_ID,S1_ID,Su_ID = [],[],[]
         List_ID = [S0_ID,S1_ID,Su_ID]
@@ -301,8 +374,6 @@ class MDP:
                     i += 1
                 Si_ID.append(i)
         
-        print(List_name,"\n",List_ID)
-        
         #1ere etape : construire la matrice
         A = np.zeros((len(Su),len(Su)))
         b = np.zeros(len(Su))
@@ -310,12 +381,17 @@ class MDP:
         #Pour chaque état unknown
         for i in range(len(Su_ID)):
             ID = Su_ID[i]
-            transition = self.S[ID].transitions[0]
+            #On récupère la bonne transition
+            j = 0
+            transition = self.S[ID].transitions[j]
+            while transition.name != politique[Su[i]] :
+                j += 1
+                transition = self.S[ID].transitions[j]
             #On récupère la matrice construite pour la transition
             trans_matrix = transition.matrix
             
             #Maintenant on récupère uniquement les informations nécessaires
-            print(transition.ID_to,Su_ID)
+
             #On parcours les états à suivre dans la transition en cours
             for id_to in transition.ID_to:
                 #Si létat d'arrivée est dans les états inconnus
@@ -338,6 +414,79 @@ class MDP:
         Aprime = np.eye(len(A)) - A
         sol = np.linalg.solve(Aprime,b)
         return sol
+
+    
+    def Q_learning(self, alpha = 0.1, gamma = 0.99, nb_epochs = 1000, max_iter_episode = 100, exploration_decreasing_decay = 0.001, min_exploration_proba = 0.01):
+        """
+        Fonction implémentant l'algo de Q-Learning
+        alpha : float, 0<alpha<1
+            learning rate
+        gamma : float, 0<gamma<1
+            discounted factor
+        """
+        
+        #Initialisation de la fonction Q
+        Q = dict()
+        name_to_ID = dict() #Un dictionnaire pour récupérer les identifiants à partir des noms
+        for state in self.S:
+            Q[state.name] = dict()
+            name_to_ID[state.name] = {"ID" : state.ID}
+            for transi in state.transitions:
+                Q[state.name][transi.name] = 0
+                name_to_ID[state.name][transi.name] = transi.ID
+        
+        #Initialisation pour l'algo
+        exploration_proba = 1
+        rewards_per_epoch = []
+        
+        #Début de l'algorithme :
+        for e in range(nb_epochs) :
+            current_state = self.S[0]
+            total_epoch_reward = 0
+            for i in range(max_iter_episode) :
+                #On choisit une transition aléatoire
+                if np.random.uniform(0,1) < exploration_proba :
+                    current_transi = current_state.transitions[np.random.randint(0,len(current_state.transitions))]
+                #Ou alors on choisit la meilleure transition pour cet état d'après la fonction Q
+                else :
+                    name_transi_maxi = list(Q[current_state.name].keys())[0]
+                    for k in Q[current_state.name].keys():
+                        if k == "ID" :
+                            pass
+                        else :
+                            if Q[current_state.name][k] > Q[current_state.name][name_transi_maxi]:
+                                name_transi_maxi = k
+                    #maintenant on a le nom de la meilleur transition dans name_transi_maxi, il faut retrouver son ID
+                    ID_current_transi = name_to_ID[current_state.name][name_transi_maxi]
+                    j = 0
+                    current_transi = current_state.transitions[j]
+                    while current_transi.ID != ID_current_transi:
+                        j += 1
+                        current_transi = current_state.transitions[j]
+                
+                #On regarde l'état suivant
+                new_state_ID = current_transi.get_next_state_ID()
+                new_state = self.S[new_state_ID]
+                
+                #Mise à jour de la fonction Q
+                values_without_ID = [Q[new_state.name][k] for k in Q[new_state.name].keys() if k != "ID"]
+                Q[current_state.name][current_transi.name] = (1-alpha)*Q[current_state.name][current_transi.name] + alpha*(new_state.reward + gamma*max(values_without_ID))
+                total_epoch_reward += new_state.reward
+                
+                #Si on est arrivé dans un état finale :
+                if new_state.transact == 2 or (len(new_state.transitions)==1 and len(new_state.transitions[0].ID_to)==1 and new_state.transitions[0].ID_to[0]==new_state.ID):
+                    break
+                current_state = new_state
+            
+            #On update la fonction de decay
+            exploration_proba = max(min_exploration_proba, np.exp(-exploration_decreasing_decay*e))
+            rewards_per_epoch.append(total_epoch_reward)
+        print("Mean reward per tenth of episodes")
+        for i in range(10):
+            print((i+1)*len(rewards_per_epoch)//10,": mean espiode reward: " ,np.mean(rewards_per_epoch[len(rewards_per_epoch)//10*i:len(rewards_per_epoch)//10*(i+1)]))
+        
+        return Q
+                
         
         
         
@@ -422,7 +571,11 @@ class Transition:
         
         return cls(ID, name, ID_from, ID_to, new_action)
     
-    def get_next_state_ID(self, current_state_ID):
+    def get_next_state_ID(self, current_state_ID = None):
+        
+        if current_state_ID == None :
+            current_state_ID = self.ID_from
+        
         list_prob = self.matrix[current_state_ID]
         rand = random()
         i = 0
@@ -532,7 +685,7 @@ def main():
     initMDP = dict()
 
     #lexer = gramLexer(StdinStream())
-    lexer = gramLexer(FileStream("../fichiers_test_prof/fichier3-mdp.mdp"))
+    lexer = gramLexer(FileStream("../fichiers_test_prof/simu-mdp.mdp"))
     stream = CommonTokenStream(lexer)
     parser = gramParser(stream)
     tree = parser.program()
@@ -542,37 +695,155 @@ def main():
     walker.walk(printer, tree)
     
     mdp = MDP.from_initMDP(initMDP)
-    
+    #print(initMDP)
     
     ###################################################
     #Partie run
-    # answer = input("Do you want to play randomly ? [y/n]")
-    # while not(answer == "y" or answer == "n") :
-    #     answer = input("Do you want to play randomly ? [y/n]")
-    # if answer == "n" :
-    #     mdp.run()
-    # else :
-    #     valid_answer = False
-    #     while not(valid_answer) :
-    #         try:
-    #             nb_run = int(input("How many states do you want to go through ?: "))
-    #             valid_answer = True
-    #         except ValueError:
-    #             print("Oops!  That was no valid number.  Try again...")
-    #     mdp.run(nb_run)
+    choose = input("Do you want to do a simple run of the input file ?[y/n]\n")
+    while choose != "y" and choose != "n" :
+        choose = input("Do you want to do a simple run of the input file ?[y/n]\n")
+    if choose == "y" :
+        answer = input("Do you want to play randomly ? [y/n]\n")
+        while not(answer == "y" or answer == "n") :
+            answer = input("Do you want to play randomly ? [y/n]\n")
+        if answer == "n" :
+            mdp.run()
+        else :
+            valid_answer = False
+            while not(valid_answer) :
+                try:
+                    nb_run = int(input("How many states (max) do you want to go through ?:\n"))
+                    valid_answer = True
+                except ValueError:
+                    print("Oops!  That was no valid number.  Try again...")
+            mdp.run(nb_run)
     ###################################################
     #Partie calcul proba éventuellement
+    choose = input("Do you want to calculate the probality to go in a state ?[y/n]\n")
+    while choose != "y" and choose != "n" :
+        choose = input("Do you want to calculate the probality to go in a state ?[y/n]\n")
+    if choose == "y" :
+        #Partie choix d'une politique
+        choose = input("Do you want to choose a politic ?[y/n]\n")
+        while choose != "y" and choose != "n" :
+            choose = input("Do you want to choose a politic ?[y/n]\n")
+        if choose == "y":
+            pol = mdp.adversaire_input()
+        else : 
+            pol = mdp.adversaire_aleatoire()
+        
+        list_name_state = [s.name for s in mdp.S]
+        goal = []
+        all_chosen = False
+        while not all_chosen :
+            g = input(f"Choose a state from this list : {list_name_state}[enter to pass]\n")
+            if g in goal :
+                print("You have already chosen this state")
+            elif g in list_name_state:
+                    goal.append(g)
+                    print(f"The states which are part of the goal are now : {goal}")
+            else :
+                print(f"This state : {g} isn't a part of the available choice")
+                answer = input("Did you have picked all the states ?[y/n]\n")
+                while answer != "y" and answer != "n" :
+                    answer = input("Did you have picked all the states ?[y/n]\n")
+                if answer == "y" :
+                    all_chosen = True
+        if len(goal) == 0:
+            print("You didn't choose any state as a goal, so the calculus is impossible")
+            sys.exit()
+        print(mdp.calcul_proba_inf(goal,pol))
+    ###################################################
+    #Partie Q-learning
+    choose = input("Do you want to execute Q-Learning ?[y/n]\n")
+    while choose != "y" and choose != "n" :
+        choose = input("Do you want to execute Q-Learning ?[y/n]\n")
+    if choose == "y" :
+        
+        #choix de alpha
+        YN = input("Do you want to choose all the values for Q-Learning ?[y/n]\n")
+        while YN != "y" and YN != "n" :
+            YN = input("Do you want to choose all the values for Q-Learning ?[y/n]\n")
+        if YN == "y" :
+            
+            #Choix de alpha
+            alpha = ""
+            while type(alpha) != float:
+                alpha = input("Value of alpha :\t")
+                try :
+                    alpha = float(alpha)
+                except ValueError :
+                    print("The value of alpha must be a float between 0 and 1, try again")
+                
+                if type(alpha) == float and not(alpha<1 and alpha>0) :
+                    print("The value of alpha must be between 0 and 1, try again")
+                    alpha = ""
+                    
+            #choix de gamma
+            gamma = ""
+            while type(gamma) != float:
+                gamma = input("Value of gamma :\t")
+                try :
+                    gamma = float(gamma)
+                except ValueError :
+                    print("The value of gamma must be a float, try again")
+        
+            #choix de nb_epochs
+            nb_epochs = ""
+            while type(nb_epochs) != int:
+                nb_epochs = input("Value of nb_epochs :\t")
+                try :
+                    nb_epochs = int(nb_epochs)
+                except ValueError :
+                    print("The value of nb_epochs must be a int, try again")
+        
+            #choix de max_iter_epoch
+            max_iter_epoch = ""
+            while type(max_iter_epoch) != int:
+                max_iter_epoch = input("Value of max_iter_epoch :\t")
+                try :
+                    max_iter_epoch = int(max_iter_epoch)
+                except ValueError :
+                    print("The value of max_iter_epoch must be a int, try again")
+        
+            #choix de exploration_decreasing_decay
+            explo_decay = ""
+            while type(explo_decay) != float:
+                explo_decay = input("Value of explo_decay :\t")
+                try :
+                    explo_decay = float(explo_decay)
+                except ValueError :
+                    print("The value of explo_decay must be a float, try again")
+            
+            #choix de min_explo_proba
+            min_explo_proba = ""
+            while type(min_explo_proba) != float:
+                min_explo_proba = input("Value of min_explo_proba :\t")
+                try :
+                    min_explo_proba = float(min_explo_proba)
+                except ValueError :
+                    print("The value of min_explo_proba must be a float, try again")
+                
+                if type(min_explo_proba) == float and not(min_explo_proba<1 and min_explo_proba>0) :
+                    print("The value of min_explo_proba must be between 0 and 1, try again")
+                    min_explo_proba = ""
+
+            print(mdp.Q_learning(alpha,gamma,nb_epochs,max_iter_epoch,explo_decay,min_explo_proba))
     
-    #print(mdp.calcul_proba_inf(["F"]))
-    #print(mdp.S[0])
-    print(mdp.adversaire_aleatoire())
-    print(mdp.adversaire_input())
-    """
-    for state in mdp.S:
-        for transition in state.transitions:
-            print(transition.matrix)
-    """
+        else :
+            print(mdp.Q_learning())
+
+    
+
    
 
 if __name__ == '__main__':
     main()
+
+
+
+# try:
+#     assert transition.name == "tna" #Si on est pas dans une chaine de markov, alors on ne peut pas utiliser la fonction #FIXME on pourrait suivre une politique dans un MDP
+# except AssertionError :
+#     print("The input is not a Markov Chain")
+#     sys.exit()

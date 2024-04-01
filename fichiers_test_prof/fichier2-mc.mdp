@@ -1,4 +1,4 @@
-States II 1, CI 2, AI 3, CC 1, CA 2, AC 3, AA 1, F 2, B 3;
+States II 1, CI 1, AI 1, CC 1, CA 1, AC 1, AA 1, F 10, B 0;
 Actions a;
 II -> 2:CI + 1:AI;
 CI -> 2:CC + 1:CA;
