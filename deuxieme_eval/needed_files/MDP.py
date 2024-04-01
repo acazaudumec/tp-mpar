@@ -481,7 +481,7 @@ class MDP:
         #On récupère les informations donnée par la fonction de recherche de S0,S1 et Su
         S0,S1,Su = self.S0_S1_Su_search(goal)
         print(f"Pour cette politique on a trouvé :\tS0 : {S0},\tS1 : {S1},\tSu : {Su}")
-        #On récupère les numéros d'ID associé à chaque nom dans Si_ID #FIXME Si on stcoke les numéros d'ID à l'avenir plus besoin de faire ça
+        #On récupère les numéros d'ID associé à chaque nom dans Si_ID
         S0_ID,S1_ID,Su_ID = [],[],[]
         List_ID = [S0_ID,S1_ID,Su_ID]
         List_name = [S0,S1,Su]

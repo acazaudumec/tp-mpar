@@ -8,14 +8,14 @@ import numpy as np
 from needed_files.Transition import *
 from needed_files.State import *
 from needed_files.MDP import *
-from needed_files.lexer import *
+from needed_files.gramPrintListener import *
 
 
 def main():
     initMDP = dict()
 
     #lexer = gramLexer(StdinStream())
-    lexer = gramLexer(FileStream("../fichiers_test_prof/simu-mdp.mdp"))
+    lexer = gramLexer(FileStream("../fichiers_test_prof/fichier3-mdp.mdp"))
     stream = CommonTokenStream(lexer)
     parser = gramParser(stream)
     tree = parser.program()
